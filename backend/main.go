@@ -8,17 +8,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-)
-
-// VULNERABILITY #4: Hardcoded credentials directly in source code
-const (
-	// These should NEVER be hardcoded in production!
-	DB_CONNECTION = "host=localhost user=taskuser password=taskpass123 dbname=securetask port=5432 sslmode=disable"
-	JWT_SECRET    = "supersecret123"  // VULNERABILITY: Weak, hardcoded JWT secret
-	ADMIN_KEY     = "admin-key-12345" // VULNERABILITY: Hardcoded API key
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load environment variables
+	godotenv.Load()
+
 	// Initialize database
 	database.Connect()
 
@@ -71,15 +67,12 @@ func main() {
 }
 
 func seedData() {
-	// Check if users already exist
-	var count int64
-	database.DB.Model(&models.User{}).Count(&count)
-	if count > 0 {
-		return // Data already seeded
-	}
-
-	// VULNERABILITY #5: Passwords stored in plain text (no hashing!)
-	users := []models.User{
+	/*
+	   Fix: Seed data idempotently instead of returning early when the users table is not empty.
+	   How: Upsert the known users by email, capture their actual IDs, then create tasks for those
+	   IDs with error checks so seeding still works on a partially populated database.
+	*/
+	seedUsers := []models.User{
 		{
 			Email:    "admin@example.com",
 			Password: "admin123", // Plain text password!
@@ -96,9 +89,52 @@ func seedData() {
 		},
 	}
 
-	for _, user := range users {
-		database.DB.Create(&user)
+	createdUsers := make(map[string]models.User)
+	for _, seedUser := range seedUsers {
+		var existing models.User
+		err := database.DB.Where("email = ?", seedUser.Email).First(&existing).Error
+		if err != nil {
+			database.DB.Create(&seedUser)
+			if seedErr := database.DB.Where("email = ?", seedUser.Email).First(&existing).Error; seedErr != nil {
+				log.Printf("failed to seed user %s: %v", seedUser.Email, seedErr)
+				continue
+			}
+		}
+
+		createdUsers[seedUser.Email] = existing
 	}
 
-	log.Println("✅ Database seeded with initial users")
+	seedTasks := []models.Task{
+		{
+			Title:       "Admin Task",
+			Description: "This is a task for the admin user",
+			Status:      "todo",
+			Priority:    "high",
+			UserID:      createdUsers["admin@example.com"].ID,
+		},
+		{
+			Title:       "User Task",
+			Description: "This is a task for the regular user",
+			Status:      "in_progress",
+			Priority:    "medium",
+			UserID:      createdUsers["user@example.com"].ID,
+		},
+	}
+
+	for _, seedTask := range seedTasks {
+		if seedTask.UserID == 0 {
+			log.Printf("skipping task seed %q because its user was not created", seedTask.Title)
+			continue
+		}
+
+		var existing models.Task
+		err := database.DB.Where("title = ? AND user_id = ?", seedTask.Title, seedTask.UserID).First(&existing).Error
+		if err != nil {
+			if createErr := database.DB.Create(&seedTask).Error; createErr != nil {
+				log.Printf("failed to seed task %q: %v", seedTask.Title, createErr)
+			}
+		}
+	}
+
+	log.Println("✅ Database seeded with initial users and tasks")
 }
