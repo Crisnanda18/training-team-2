@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getTasks, createTask, updateTask, deleteTask, searchTasks } from '../services/api';
+import { getTasks, createTask, updateTask, deleteTask, searchTasks, getCurrentUser } from '../services/api';
 import { getUserData, removeToken, clearUserData } from '../utils/storage';
 
 function Dashboard() {
@@ -12,8 +12,16 @@ function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
+    const fetchUserData = async () => {
+      const userData = await getCurrentUser();
+      if (!userData) {
+        navigate('/login');
+      }
+
+      setUser(userData);
+    }
+
+    fetchUserData();
     loadTasks();
   }, []);
 
@@ -60,8 +68,8 @@ function Dashboard() {
 
   const handleLogout = () => {
     removeToken();
-    clearUserData();
     navigate('/login');
+    window.location.reload();
   };
 
   return (
@@ -76,13 +84,14 @@ function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
-                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage */}
-                Welcome, {user?.name} ({user?.email})
+                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage 
+                fixed: using useState instead of localStorage */}
+                Welcome, {user?.data?.name} ({user?.data?.email})
               </span>
               <Link to="/profile" className="text-blue-500 hover:underline">
                 Profile
               </Link>
-              {user?.role === 'admin' && (
+              {user?.data.role === 'admin' && (
                 <Link to="/admin" className="text-blue-500 hover:underline">
                   Admin Panel
                 </Link>
@@ -193,11 +202,13 @@ function Dashboard() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                      {/* VULNERABILITY #3: Rendering unsanitized HTML - XSS attack vector! */}
+                      {/* VULNERABILITY #3: Rendering unsanitized HTML - XSS attack vector! 
+                      delete dangerouslySetInnerHTML={{ __html: task.description }} */}
                       <div 
                         className="text-gray-600 mt-2"
-                        dangerouslySetInnerHTML={{ __html: task.description }}
-                      />
+                      >
+                        {task.description}
+                      </div>
                       <div className="mt-2 flex gap-2">
                         <span className={`text-xs px-2 py-1 rounded ${
                           task.priority === 'high' ? 'bg-red-100 text-red-800' :

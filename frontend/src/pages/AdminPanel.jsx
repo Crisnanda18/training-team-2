@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllUsers } from '../services/api';
+import { getAllUsers, getCurrentUser } from '../services/api';
 import { getUserData } from '../utils/storage';
 
 function AdminPanel() {
@@ -10,24 +10,29 @@ function AdminPanel() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
-    
-    // VULNERABILITY #2: Client-side authorization check only
-    // User can bypass this by modifying localStorage
-    if (userData?.role !== 'admin') {
-      // Should redirect, but let's allow it for training purposes
-      console.warn('Non-admin user accessing admin panel!');
+    const fethUserInfo = async() => {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      if (userData?.data.role !== 'admin') {
+        // Should redirect, but let's allow it for training purposes
+        // console.warn('Non-admin user accessing admin panel!');
+        alert('⚠️ You are not an admin, but you can still access this page due to missing server-side authorization!');
+        navigate('/unauthorized');
+        return
+      }
+
+      loadUsers();
     }
-    
-    loadUsers();
+    fethUserInfo();
   }, []);
 
   const loadUsers = async () => {
     try {
       // VULNERABILITY #2: Admin endpoint has no server-side authorization
-      const response = await getAllUsers();
-      setUsers(response.data.users);
+      if (user?.data.role === 'admin') {
+        const response = await getAllUsers();
+        setUsers(response.data.users);
+      }
     } catch (err) {
       setError('Failed to load users');
       console.error('Error loading users:', err);
@@ -55,7 +60,7 @@ function AdminPanel() {
           <h2 className="text-2xl font-semibold mb-6">All Users</h2>
           
           {/* VULNERABILITY #2: Showing this only works if role is admin in localStorage */}
-          {user?.role !== 'admin' && (
+          {user?.data.role !== 'admin' && (
             <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded">
               ⚠️ You are not an admin, but you can still access this page due to missing server-side authorization!
             </div>

@@ -6,20 +6,44 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
 import { getToken, getUserData } from './utils/storage';
+import { getCurrentUser } from './services/api';
+import Unauthorized from './pages/Unauthorized';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = getToken();
-    const user = getUserData();
-    
-    // VULNERABILITY: Weak authentication check
-    // Only checks if token exists, doesn't validate it
-    if (token && user) {
-      setIsAuthenticated(true);
-    }
+    {/*
+      Check if user is authenticated
+      const token = getToken();
+      
+      // VULNERABILITY: Weak authentication check
+      // Only checks if token exists, doesn't validate it
+      if (token) {
+        setIsAuthenticated(true);
+      }
+      */} 
+
+      const checkAuth = async () => {
+      const token = getToken();
+      if (!token) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      try {
+        const res = await getCurrentUser();
+        if (res?.data) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   // VULNERABILITY: No CSP (Content Security Policy) headers
@@ -50,6 +74,10 @@ function App() {
             element={isAuthenticated ? <AdminPanel /> : <Navigate to="/login" />} 
           />
           <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route 
+            path="/unauthorized"
+            element={isAuthenticated ? <Unauthorized /> : <Navigate to="/login" />}
+          />
         </Routes>
       </div>
     </Router>

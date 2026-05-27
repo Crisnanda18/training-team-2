@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile } from '../services/api';
-import { getUserData, setUserData } from '../utils/storage';
+import { getCurrentUser, updateProfile } from '../services/api';
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -13,14 +12,20 @@ function Profile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
-    if (userData) {
-      setFormData({
-        name: userData.name || '',
-        bio: userData.bio || ''
-      });
-    }
+    const fetchUserData = async () => {
+      try {
+        const userData = await getCurrentUser();
+        setUser(userData);
+        setFormData({
+          name: userData.data.name || '',
+          bio: userData.data.bio || ''
+        });
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    };
+    
+    fetchUserData();
   }, []);
 
   const handleChange = (e) => {
@@ -36,12 +41,14 @@ function Profile() {
 
     try {
       // VULNERABILITY #2: No authorization check - can update any user's profile
-      const response = await updateProfile(user.id, formData);
+      const currentUser = await getCurrentUser();
+      if (currentUser.data.id !== user.data.id) {
+        setMessage('You are not authorized to update this profile.');
+        return;
+      }
+      const response = await updateProfile(user.data.id, formData);
       
       // VULNERABILITY #5: Updating localStorage with potentially sensitive data
-      setUserData(response.data);
-      setUser(response.data);
-      
       setMessage('Profile updated successfully!');
     } catch (error) {
       setMessage('Failed to update profile');
@@ -86,7 +93,7 @@ function Profile() {
               </label>
               <input
                 type="email"
-                value={user?.email || ''}
+                value={user?.data.email || ''}
                 className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100"
                 disabled
               />
@@ -130,21 +137,14 @@ function Profile() {
           </form>
 
           {/* Display current bio with XSS vulnerability */}
-          {user?.bio && (
+          {user?.data.bio && (
             <div className="mt-6 p-4 bg-gray-50 rounded">
               <h3 className="font-semibold mb-2">Current Bio:</h3>
-              {/* VULNERABILITY #3: Rendering unsanitized HTML */}
-              <div dangerouslySetInnerHTML={{ __html: user.bio }} />
+              {/* VULNERABILITY #3: Rendering unsanitized HTML 
+              fixed: delete dangerouslySetInnerHTML */}
+              <div>{user.data.bio}</div>
             </div>
           )}
-
-          {/* VULNERABILITY #5: Exposing sensitive data in UI */}
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-            <h3 className="font-semibold mb-2 text-yellow-800">Debug Info (Should be removed in production!):</h3>
-            <pre className="text-xs overflow-auto">
-              {JSON.stringify(user, null, 2)}
-            </pre>
-          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
-import { setToken, setUserData, saveDebugInfo } from '../utils/storage';
+import { setToken } from '../utils/storage';
 
 function Login({ setAuth }) {
   const [email, setEmail] = useState('');
@@ -19,16 +19,16 @@ function Login({ setAuth }) {
       // VULNERABILITY #5: Storing token in localStorage (vulnerable to XSS)
       setToken(response.data.token);
       
-      // VULNERABILITY #5: Storing full user object including password
-      setUserData(response.data.user);
-      
-      // VULNERABILITY: Storing sensitive debug info
-      saveDebugInfo({
-        action: 'login',
-        email: email,
-        timestamp: new Date(),
-        userAgent: navigator.userAgent
-      });
+      {/*
+        // VULNERABILITY: Storing sensitive debug info
+        saveDebugInfo({
+          action: 'login',
+          userId: response.data.user.id,
+          timestamp: new Date(),
+          userAgent: navigator.userAgent
+        }); 
+        
+        */}
 
       setAuth(true);
       navigate('/dashboard');
