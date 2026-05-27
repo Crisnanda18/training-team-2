@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getTasks, createTask, updateTask, deleteTask, searchTasks, getCurrentUser } from '../services/api';
 import { getUserData, removeToken, clearUserData } from '../utils/storage';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Dashboard() {
   const [tasks, setTasks] = useState([]);
@@ -30,7 +31,9 @@ function Dashboard() {
       const response = await getTasks();
       setTasks(response.data);
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      if (VITE_DEBUG_MODE) {
+        console.error('Failed to load tasks:', error);
+      }
     }
   };
 
@@ -41,7 +44,9 @@ function Dashboard() {
       setNewTask({ title: '', description: '', priority: 'medium' });
       loadTasks();
     } catch (error) {
-      console.error('Failed to create task:', error);
+      if (VITE_DEBUG_MODE) {
+        console.error('Failed to create task:', error);
+      }
     }
   };
 
@@ -50,7 +55,9 @@ function Dashboard() {
       await deleteTask(id);
       loadTasks();
     } catch (error) {
-      console.error('Failed to delete task:', error);
+      if (VITE_DEBUG_MODE) {
+        console.error('Failed to delete task:', error);
+      }
     }
   };
 
@@ -61,8 +68,11 @@ function Dashboard() {
       const response = await searchTasks(searchTerm);
       setSearchResults(response.data);
     } catch (error) {
-      console.error('Search failed:', error);
-      alert('Search failed: ' + (error.response?.data?.error || 'Unknown error'));
+      if (VITE_DEBUG_MODE) {
+        console.error('Search failed:', error);
+      }
+      // alert('Search failed: ' + (error.response?.data?.error || 'Unknown error'));
+      alert('Search failed');
     }
   };
 

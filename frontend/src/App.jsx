@@ -5,7 +5,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
-import { getToken, getUserData } from './utils/storage';
+// import { getToken, getUserData } from './utils/storage';
 import { getCurrentUser } from './services/api';
 import Unauthorized from './pages/Unauthorized';
 
@@ -26,12 +26,12 @@ function App() {
       */} 
 
       const checkAuth = async () => {
-      const token = getToken();
-      if (!token) {
-        setIsAuthenticated(false);
-        setAuthLoading(false);
-        return;
-      }
+      // const token = getToken();
+      // if (!token) {
+      //   setIsAuthenticated(false);
+      //   setAuthLoading(false);
+      //   return;
+      // }
 
       try {
         const res = await getCurrentUser();

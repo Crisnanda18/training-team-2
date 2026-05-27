@@ -1,22 +1,27 @@
 // VULNERABILITY #5: Insecure storage of sensitive data
 
+let tokenMemory = null;
+
 // VULNERABILITY: Storing JWT token in localStorage (vulnerable to XSS)
 export const setToken = (token) => {
   {/* 
     localStorage.setItem('token', token); // Should use httpOnly cookies!
     */}
   
-  document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
+  // document.cookie = `token=${token}; path=/; secure; samesite=strict;`;
+  tokenMemory = token;
 };
 
 export const getToken = () => {
   // return localStorage.getItem('token');
 
-  return document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || null;
+  // return document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || null;
+  return tokenMemory;
 };
 
 export const removeToken = () => {
-  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
+  // document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
+  tokenMemory = null;
 };
 
 {/*
@@ -39,7 +44,9 @@ export const clearUserData = () => {
   // VULNERABILITY: Not clearing all sensitive data
   // localStorage.clear() would be better, but this leaves traces
   
-  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
+  // document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('currentUser');
 };
 
 // VULNERABILITY #5: Storing sensitive settings in localStorage
@@ -58,4 +65,3 @@ export const saveDebugInfo = (info) => {
   }));
 };
    */}
-
