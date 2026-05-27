@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllUsers, getCurrentUser } from '../services/api';
-import { getUserData } from '../utils/storage';
 
 function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -16,7 +15,6 @@ function AdminPanel() {
       if (userData?.data.role !== 'admin') {
         // Should redirect, but let's allow it for training purposes
         // console.warn('Non-admin user accessing admin panel!');
-        alert('⚠️ You are not an admin, but you can still access this page due to missing server-side authorization!');
         navigate('/unauthorized');
         return
       }
@@ -29,10 +27,8 @@ function AdminPanel() {
   const loadUsers = async () => {
     try {
       // VULNERABILITY #2: Admin endpoint has no server-side authorization
-      if (user?.data.role === 'admin') {
-        const response = await getAllUsers();
-        setUsers(response.data.users);
-      }
+      const response = await getAllUsers();
+      setUsers(response.data.users);
     } catch (err) {
       setError('Failed to load users');
       console.error('Error loading users:', err);

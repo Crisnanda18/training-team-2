@@ -11,6 +11,7 @@ import Unauthorized from './pages/Unauthorized';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     {/*
@@ -28,23 +29,26 @@ function App() {
       const token = getToken();
       if (!token) {
         setIsAuthenticated(false);
+        setAuthLoading(false);
         return;
       }
 
       try {
         const res = await getCurrentUser();
-        if (res?.data) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
+        setIsAuthenticated(!!res?.data);
       } catch (err) {
         setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
       }
     };
 
     checkAuth();
   }, []);
+
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
 
   // VULNERABILITY: No CSP (Content Security Policy) headers
   // VULNERABILITY: No protection against clickjacking
