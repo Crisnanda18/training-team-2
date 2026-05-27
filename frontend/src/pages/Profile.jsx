@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateProfile } from '../services/api';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -21,7 +22,9 @@ function Profile() {
           bio: userData.data.bio || ''
         });
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
+        if (VITE_DEBUG_MODE) {
+          console.error('Failed to fetch user data:', error);
+        }
       }
     };
     
@@ -52,7 +55,9 @@ function Profile() {
       setMessage('Profile updated successfully!');
     } catch (error) {
       setMessage('Failed to update profile');
-      console.error('Update error:', error);
+      if (VITE_DEBUG_MODE) {
+        console.error('Update error:', error);
+      }
     }
   };
 

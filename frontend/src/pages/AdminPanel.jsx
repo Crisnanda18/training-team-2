@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllUsers, getCurrentUser } from '../services/api';
+import { VITE_DEBUG_MODE } from '../config';
 
 function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -31,7 +32,9 @@ function AdminPanel() {
       setUsers(response.data.users);
     } catch (err) {
       setError('Failed to load users');
-      console.error('Error loading users:', err);
+      if (VITE_DEBUG_MODE) {
+        console.error('Error loading users:', err);
+      }
     }
   };
 
@@ -84,9 +87,9 @@ function AdminPanel() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Password
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -111,16 +114,16 @@ function AdminPanel() {
                       </span>
                     </td>
                     {/* VULNERABILITY #2 & #5: Displaying plain text passwords from API */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-mono">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-mono">
                       {u.password || 'N/A'}
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
+          {/* <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
             <h3 className="font-semibold text-red-800 mb-2">🚨 Security Issues on This Page:</h3>
             <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
               <li>No server-side authorization check - anyone can access this endpoint</li>
@@ -128,7 +131,7 @@ function AdminPanel() {
               <li>Client-side role check can be bypassed</li>
               <li>Sensitive user data exposed without proper access control</li>
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

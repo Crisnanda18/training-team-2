@@ -1,9 +1,11 @@
 import axios from 'axios';
-import { API_BASE_URL, ADMIN_API_KEY } from '../config';
+// import { API_BASE_URL, ADMIN_API_KEY } from '../config';
+import { API_BASE_URL, VITE_DEBUG_MODE } from '../config';
 import { getToken } from '../utils/storage';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || 'http://localhost:8080/api',
+  withCredentials: true,
 });
 
 // VULNERABILITY: Logging sensitive data
@@ -24,7 +26,9 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Request Error:', error);
+    if (VITE_DEBUG_MODE) {
+      console.error('Request Error:', error);
+    }
     return Promise.reject(error);
   }
 );
@@ -88,12 +92,13 @@ export const updateProfile = (userId, profileData) => {
 // VULNERABILITY #2: Admin endpoint accessible without proper authorization check
 // VULNERABILITY #4: Hardcoded API key sent in request
 export const getAllUsers = () => {
-  return api.get('/admin/users', {
-    headers: {
-      // 'X-Admin-Key': ADMIN_API_KEY  // Hardcoded admin key!
-      'X-Admin-Key': import.meta.env.VITE_ADMIN_API_KEY
-    }
-  });
+  // return api.get('/admin/users', {
+  //   headers: {
+  //     // 'X-Admin-Key': ADMIN_API_KEY  // Hardcoded admin key!
+  //     'X-Admin-Key': import.meta.env.VITE_ADMIN_API_KEY
+  //   }
+  // });
+  return api.get('/admin/users');
 };
 
 export default api;

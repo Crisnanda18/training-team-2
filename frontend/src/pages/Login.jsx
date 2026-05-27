@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
 import { setToken } from '../utils/storage';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Login({ setAuth }) {
   const [email, setEmail] = useState('');
@@ -34,8 +35,11 @@ function Login({ setAuth }) {
       navigate('/dashboard');
     } catch (err) {
       // VULNERABILITY: Exposing detailed error messages
-      setError(err.response?.data?.error || 'Login failed');
-      console.error('Login error:', err.response?.data);
+      // setError(err.response?.data?.error || 'Login failed');
+      setError('Login failed');
+      if (VITE_DEBUG_MODE) {
+        console.error('Login error:', err.response?.data);
+      }
     }
   };
 
@@ -96,11 +100,11 @@ function Login({ setAuth }) {
           </Link>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-100 rounded text-sm">
+        {/* <div className="mt-6 p-4 bg-gray-100 rounded text-sm">
           <p className="font-semibold mb-2">Test Accounts:</p>
           <p className="text-gray-700">User: user@example.com / password123</p>
           <p className="text-gray-700">Admin: admin@example.com / admin123</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

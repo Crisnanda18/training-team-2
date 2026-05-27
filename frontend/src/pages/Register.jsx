@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../services/api';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -36,8 +37,11 @@ function Register() {
       }, 2000);
     } catch (err) {
       // VULNERABILITY: Exposing detailed error information
-      setError(err.response?.data?.error || 'Registration failed');
-      console.error('Registration error:', err);
+      // setError(err.response?.data?.error || 'Registration failed');
+      setError('Registration failed');
+      if (VITE_DEBUG_MODE) {
+        console.error('Registration error:', err);
+      }
     }
   };
 
