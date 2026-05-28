@@ -141,15 +141,6 @@ function Profile() {
             </div>
           )}
 
-          {/* VULNERABILITY #5: Exposing sensitive data in UI */}
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-            <h3 className="font-semibold mb-2 text-yellow-800">
-              Debug Info (Should be removed in production!):
-            </h3>
-            <pre className="text-xs overflow-auto">
-              {JSON.stringify(user, null, 2)}
-            </pre>
-          </div>
         </div>
       </div>
     </div>
