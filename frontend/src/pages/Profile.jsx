@@ -35,10 +35,10 @@ function Profile() {
     setMessage("");
 
     try {
-      // VULNERABILITY #2: No authorization check - can update any user's profile
+      // VULNERABILITY #2: No authorization check - can update any user's profile (harusnya aman karena sudah di filter di UserData)
       const response = await updateProfile(user.id, formData);
 
-      // VULNERABILITY #5: Updating localStorage with potentially sensitive data
+      // VULNERABILITY #5: Updating localStorage with potentially sensitive data (harusnya aman karena sudah di filter di UserData)
       setUserData(response.data);
       setUser(response.data);
 

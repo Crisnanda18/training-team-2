@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL, ADMIN_API_KEY } from '../config';
+import { API_BASE_URL } from '../config';
 import { getToken } from '../utils/storage';
 
 const api = axios.create({
@@ -15,16 +15,16 @@ api.interceptors.request.use(
     }
     
     // VULNERABILITY: Logging requests with sensitive data
-    if (console && console.log) {
-      console.log('API Request:', config.method, config.url, config.data);
-    }
+    // if (console && console.log) {
+    //   console.log('API Request:', config.method, config.url, config.data);
+    // }
     
     return config;
   },
-  (error) => {
-    console.error('Request Error:', error);
-    return Promise.reject(error);
-  }
+  // (error) => {
+  //   console.error('Request Error:', error);
+  //   return Promise.reject(error);
+  // }
 );
 
 // VULNERABILITY: Logging sensitive response data
@@ -33,10 +33,10 @@ api.interceptors.response.use(
     console.log('API Response:', response.data);
     return response;
   },
-  (error) => {
-    console.error('Response Error:', error.response?.data);
-    return Promise.reject(error);
-  }
+  // (error) => {
+  //   console.error('Response Error:', error.response?.data);
+  //   return Promise.reject(error);
+  // }
 );
 
 // Auth APIs
@@ -80,14 +80,11 @@ export const updateProfile = (userId, profileData) => {
   return api.put(`/users/${userId}/profile`, profileData);
 };
 
-// VULNERABILITY #2: Admin endpoint accessible without proper authorization check
-// VULNERABILITY #4: Hardcoded API key sent in request
+// FIXED: Admin endpoint sekarang pakai Bearer token dari interceptor
+// Backend yang validasi apakah user ini role admin atau bukan via JWT.
+// Tidak perlu static API key — itu shared secret yang kalau bocor, siapapun jadi admin.
 export const getAllUsers = () => {
-  return api.get('/admin/users', {
-    headers: {
-      'X-Admin-Key': ADMIN_API_KEY  // Hardcoded admin key!
-    }
-  });
+  return api.get('/admin/users');
 };
 
 export default api;

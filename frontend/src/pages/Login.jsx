@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
-import { setToken, setUserData, saveDebugInfo } from '../utils/storage';
+import { setToken, setUserData } from '../utils/storage';
 
 function Login({ setAuth }) {
   const [email, setEmail] = useState('');
@@ -23,12 +23,12 @@ function Login({ setAuth }) {
       setUserData(response.data.user);
       
       // VULNERABILITY: Storing sensitive debug info
-      saveDebugInfo({
-        action: 'login',
-        email: email,
-        timestamp: new Date(),
-        userAgent: navigator.userAgent
-      });
+      // saveDebugInfo({
+      //   action: 'login',
+      //   email: email,
+      //   timestamp: new Date(),
+      //   userAgent: navigator.userAgent
+      // });
 
       setAuth(true);
       navigate('/dashboard');

@@ -15,11 +15,15 @@ export const removeToken = () => {
 
 // VULNERABILITY #5: Storing user data including sensitive info in localStorage
 export const setUserData = (user) => {
-  // Storing full user object including password!
-  localStorage.setItem('user', JSON.stringify(user));
-  
-  // VULNERABILITY: Also storing in sessionStorage
-  sessionStorage.setItem('currentUser', JSON.stringify(user));
+  if (!user) return;
+  const safeUser = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    bio: user.bio,
+  };
+  localStorage.setItem("user", JSON.stringify(safeUser));
 };
 
 export const getUserData = () => {
@@ -29,7 +33,7 @@ export const getUserData = () => {
 
 export const clearUserData = () => {
   localStorage.removeItem('user');
-  sessionStorage.removeItem('currentUser');
+  //sessionStorage.removeItem('currentUser');
   
   // VULNERABILITY: Not clearing all sensitive data
   // localStorage.clear() would be better, but this leaves traces
@@ -41,10 +45,10 @@ export const saveSettings = (settings) => {
 };
 
 // VULNERABILITY: Exposing internal debug data
-export const saveDebugInfo = (info) => {
-  localStorage.setItem('debugInfo', JSON.stringify({
-    ...info,
-    timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent
-  }));
-};
+// export const saveDebugInfo = (info) => {
+//   localStorage.setItem('debugInfo', JSON.stringify({
+//     ...info,
+//     timestamp: new Date().toISOString(),
+//     userAgent: navigator.userAgent
+//   }));
+// };

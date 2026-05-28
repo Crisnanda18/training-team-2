@@ -90,8 +90,8 @@ function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
-                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage */}
-                Welcome, {user?.name} ({user?.email})
+                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage (done)*/}
+                Welcome, {user?.name}
               </span>
               <Link to="/profile" className="text-blue-500 hover:underline">
                 Profile
