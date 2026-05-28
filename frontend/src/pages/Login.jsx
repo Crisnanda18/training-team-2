@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
-import { setToken, setUserData, saveDebugInfo } from '../utils/storage';
+import { setToken } from '../utils/storage';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Login({ setAuth }) {
   const [email, setEmail] = useState('');
@@ -19,23 +20,26 @@ function Login({ setAuth }) {
       // VULNERABILITY #5: Storing token in localStorage (vulnerable to XSS)
       setToken(response.data.token);
       
-      // VULNERABILITY #5: Storing full user object including password
-      setUserData(response.data.user);
-      
-      // VULNERABILITY: Storing sensitive debug info
-      saveDebugInfo({
-        action: 'login',
-        email: email,
-        timestamp: new Date(),
-        userAgent: navigator.userAgent
-      });
+      {/*
+        // VULNERABILITY: Storing sensitive debug info
+        saveDebugInfo({
+          action: 'login',
+          userId: response.data.user.id,
+          timestamp: new Date(),
+          userAgent: navigator.userAgent
+        }); 
+        
+        */}
 
       setAuth(true);
       navigate('/dashboard');
     } catch (err) {
       // VULNERABILITY: Exposing detailed error messages
-      setError(err.response?.data?.error || 'Login failed');
-      console.error('Login error:', err.response?.data);
+      // setError(err.response?.data?.error || 'Login failed');
+      setError('Login failed');
+      if (VITE_DEBUG_MODE) {
+        console.error('Login error:', err.response?.data);
+      }
     }
   };
 
@@ -96,11 +100,11 @@ function Login({ setAuth }) {
           </Link>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-100 rounded text-sm">
+        {/* <div className="mt-6 p-4 bg-gray-100 rounded text-sm">
           <p className="font-semibold mb-2">Test Accounts:</p>
           <p className="text-gray-700">User: user@example.com / password123</p>
           <p className="text-gray-700">Admin: admin@example.com / admin123</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
