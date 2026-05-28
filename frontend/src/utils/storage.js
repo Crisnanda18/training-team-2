@@ -35,25 +35,25 @@ export const removeToken = () => {
   };
 */}
 
-export const getUserData = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
-};
+// export const getUserData = () => {
+//   const user = localStorage.getItem('user');
+//   return user ? JSON.parse(user) : null;
+// };
 
-export const clearUserData = () => {
-  // VULNERABILITY: Not clearing all sensitive data
-  // localStorage.clear() would be better, but this leaves traces
+// export const clearUserData = () => {
+//   // VULNERABILITY: Not clearing all sensitive data
+//   // localStorage.clear() would be better, but this leaves traces
   
-  // document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('currentUser');
-};
+//   // document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1945 17:08:45 GMT';
+//   localStorage.removeItem('user');
+//   sessionStorage.removeItem('currentUser');
+// };
 
 // VULNERABILITY #5: Storing sensitive settings in localStorage
-export const saveSettings = (settings) => {
-  localStorage.setItem('appSettings', JSON.stringify(settings));
-  // document.cookie
-};
+// export const saveSettings = (settings) => {
+//   localStorage.setItem('appSettings', JSON.stringify(settings));
+//   // document.cookie
+// };
 
 {/*
   // VULNERABILITY: Exposing internal debug data
