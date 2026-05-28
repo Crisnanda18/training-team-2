@@ -193,11 +193,7 @@ function Dashboard() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                      {/* VULNERABILITY #3: Rendering unsanitized HTML - XSS attack vector! */}
-                      <div 
-                        className="text-gray-600 mt-2"
-                        dangerouslySetInnerHTML={{ __html: task.description }}
-                      />
+                      <p className="text-gray-600 mt-2">{task.description}</p>
                       <div className="mt-2 flex gap-2">
                         <span className={`text-xs px-2 py-1 rounded ${
                           task.priority === 'high' ? 'bg-red-100 text-red-800' :
