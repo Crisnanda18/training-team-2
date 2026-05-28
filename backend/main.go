@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"securetask/database"
 	"securetask/handlers"
 	"securetask/models"
@@ -10,7 +11,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/time/rate"
 )
+
+func RateLimiter() gin.HandlerFunc {
+	limiter := rate.NewLimiter(1, 4)
+	return func(c *gin.Context) {
+
+		if limiter.Allow() {
+			c.Next()
+		} else {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"message": "Limite exceed",
+			})
+		}
+
+	}
+}
 
 func main() {
 	// Load environment variables
@@ -30,6 +47,7 @@ func main() {
 
 	// Setup Gin router
 	r := gin.Default()
+	r.Use(RateLimiter())
 
 	// VULNERABILITY: Permissive CORS - allows all origins
 	/*
@@ -49,9 +67,6 @@ func main() {
 	r.POST("/api/auth/register", handlers.Register)
 	r.POST("/api/auth/login", handlers.Login)
 
-	// VULNERABILITY #2: Admin route with no authorization check
-	r.GET("/api/admin/users", handlers.GetAllUsers) // Anyone can access!
-
 	// Protected routes (with auth middleware)
 	authorized := r.Group("/api")
 	authorized.Use(handlers.AuthMiddleware())
@@ -64,6 +79,11 @@ func main() {
 		authorized.GET("/api/tasks/search", handlers.SearchTasks)
 		authorized.DELETE("/api/tasks/:id", handlers.DeleteTask)
 		authorized.PUT("/api/users/:id/profile", handlers.UpdateProfile)
+
+		admin := authorized.Group("/admin", handlers.AdminMiddleware())
+		{
+			admin.GET("/users", handlers.GetAllUsers)
+		}
 	}
 
 	log.Println("🚀 Server starting on port 8080...")
