@@ -9,6 +9,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -31,8 +32,13 @@ func main() {
 	r := gin.Default()
 
 	// VULNERABILITY: Permissive CORS - allows all origins
+	/*
+	   Fix: Restrict CORS to only allow trusted origins and specific methods/headers.
+	   How: Update the cors.Config to specify allowed origins, methods, and headers instead of allowing all.
+	*/
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
+		AllowAllOrigins:  false,
+		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"*"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -42,11 +48,6 @@ func main() {
 	// Public routes (no authentication required)
 	r.POST("/api/auth/register", handlers.Register)
 	r.POST("/api/auth/login", handlers.Login)
-
-	// VULNERABILITY #2: No authentication middleware on these routes!
-	r.GET("/api/tasks/search", handlers.SearchTasks)        // Should require auth
-	r.DELETE("/api/tasks/:id", handlers.DeleteTask)         // Should require auth
-	r.PUT("/api/users/:id/profile", handlers.UpdateProfile) // Should require auth
 
 	// VULNERABILITY #2: Admin route with no authorization check
 	r.GET("/api/admin/users", handlers.GetAllUsers) // Anyone can access!
@@ -59,6 +60,10 @@ func main() {
 		authorized.POST("/tasks", handlers.CreateTask)
 		authorized.PUT("/tasks/:id", handlers.UpdateTask)
 		authorized.GET("/users/me", handlers.GetCurrentUser)
+
+		authorized.GET("/api/tasks/search", handlers.SearchTasks)
+		authorized.DELETE("/api/tasks/:id", handlers.DeleteTask)
+		authorized.PUT("/api/users/:id/profile", handlers.UpdateProfile)
 	}
 
 	log.Println("🚀 Server starting on port 8080...")
@@ -66,23 +71,26 @@ func main() {
 	r.Run(":8080")
 }
 
+func HashPassword(password string) string {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		log.Fatal("Failed to hash password:", err)
+	}
+	return string(bytes)
+}
+
 func seedData() {
-	/*
-	   Fix: Seed data idempotently instead of returning early when the users table is not empty.
-	   How: Upsert the known users by email, capture their actual IDs, then create tasks for those
-	   IDs with error checks so seeding still works on a partially populated database.
-	*/
 	seedUsers := []models.User{
 		{
 			Email:    "admin@example.com",
-			Password: "admin123", // Plain text password!
+			Password: HashPassword("admin123"),
 			Name:     "Admin User",
 			Role:     "admin",
 			Bio:      "I'm the administrator",
 		},
 		{
 			Email:    "user@example.com",
-			Password: "password123", // Plain text password!
+			Password: HashPassword("password123"),
 			Name:     "Regular User",
 			Role:     "user",
 			Bio:      "Just a regular user",

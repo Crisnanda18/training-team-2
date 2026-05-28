@@ -17,3 +17,13 @@ type User struct {
 
 // VULNERABILITY #2: Returning password in JSON responses
 // Should have `json:"-"` on Password field
+/*
+	fix: Make another struct for responses that exclude password
+*/
+type UserResponse struct {
+	ID    uint   `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+	Role  string `json:"role"`
+	Bio   string `json:"bio"`
+}

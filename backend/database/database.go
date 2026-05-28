@@ -17,7 +17,6 @@ var DB *gorm.DB
 	How: Replace hardcoded connection string with environment variables and update Connect function to read from them.
 */
 func Connect() {
-	// These credentials should come from environment variables!
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_USER"),
@@ -25,8 +24,6 @@ func Connect() {
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_PORT"),
 	)
-	fmt.Println(dsn)
-
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -44,7 +41,6 @@ func Connect() {
 func ExecuteRawSQL(query string, args ...any) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
 
-	// This allows SQL injection!
 	rows, err := DB.Raw(query, args...).Rows()
 	if err != nil {
 		return nil, err
