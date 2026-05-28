@@ -4,7 +4,7 @@ import { API_BASE_URL, VITE_DEBUG_MODE } from '../config';
 import { getToken } from '../utils/storage';
 
 const api = axios.create({
-  baseURL: API_BASE_URL || 'http://localhost:8080/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
