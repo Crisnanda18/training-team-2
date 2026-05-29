@@ -1,13 +1,7 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  getTasks,
-  createTask,
-  updateTask,
-  deleteTask,
-  searchTasks,
-} from "../services/api";
-import { getUserData, removeToken, clearUserData } from "../utils/storage";
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { getTasks, createTask, updateTask, deleteTask, searchTasks } from '../services/api';
+import { getUserData, removeToken, clearUserData } from '../utils/storage';
 
 function Dashboard() {
   const [tasks, setTasks] = useState([]);
@@ -22,8 +16,16 @@ function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
+    const fetchUserData = async () => {
+      const userData = await getCurrentUser();
+      if (!userData) {
+        navigate('/login');
+      }
+
+      setUser(userData);
+    }
+
+    fetchUserData();
     loadTasks();
   }, []);
 
@@ -32,7 +34,7 @@ function Dashboard() {
       const response = await getTasks();
       setTasks(response.data);
     } catch (error) {
-      console.error("Failed to load tasks:", error);
+      console.error('Failed to load tasks:', error);
     }
   };
 
@@ -43,7 +45,7 @@ function Dashboard() {
       setNewTask({ title: "", description: "", priority: "medium" });
       loadTasks();
     } catch (error) {
-      console.error("Failed to create task:", error);
+      console.error('Failed to create task:', error);
     }
   };
 
@@ -52,7 +54,7 @@ function Dashboard() {
       await deleteTask(id);
       loadTasks();
     } catch (error) {
-      console.error("Failed to delete task:", error);
+      console.error('Failed to delete task:', error);
     }
   };
 
@@ -63,17 +65,15 @@ function Dashboard() {
       const response = await searchTasks(searchTerm);
       setSearchResults(response.data);
     } catch (error) {
-      console.error("Search failed:", error);
-      alert(
-        "Search failed: " + (error.response?.data?.error || "Unknown error"),
-      );
+      console.error('Search failed:', error);
+      alert('Search failed: ' + (error.response?.data?.error || 'Unknown error'));
     }
   };
 
   const handleLogout = () => {
     removeToken();
     clearUserData();
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
@@ -90,13 +90,13 @@ function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
-                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage (done)*/}
-                Welcome, {user?.name}
+                {/* VULNERABILITY #5: Displaying sensitive user data from localStorage */}
+                Welcome, {user?.name} ({user?.email})
               </span>
               <Link to="/profile" className="text-blue-500 hover:underline">
                 Profile
               </Link>
-              {user?.role === "admin" && (
+              {user?.role === 'admin' && (
                 <Link to="/admin" className="text-blue-500 hover:underline">
                   Admin Panel
                 </Link>
@@ -212,10 +212,12 @@ function Dashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {task.title}
-                      </h3>
-                      <p className="text-gray-600 mt-2">{task.description}</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                      {/* VULNERABILITY #3: Rendering unsanitized HTML - XSS attack vector! */}
+                      <div 
+                        className="text-gray-600 mt-2"
+                        dangerouslySetInnerHTML={{ __html: task.description }}
+                      />
                       <div className="mt-2 flex gap-2">
                         <span
                           className={`text-xs px-2 py-1 rounded ${

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllUsers } from '../services/api';
-import { getUserData } from '../utils/storage';
+import { getAllUsers, getCurrentUser } from '../services/api';
+import { VITE_DEBUG_MODE } from '../config';
 
 function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -10,17 +10,19 @@ function AdminPanel() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
-    
-    // VULNERABILITY #2: Client-side authorization check only
-    // User can bypass this by modifying localStorage
-    if (userData?.role !== 'admin') {
-      // Should redirect, but let's allow it for training purposes
-      console.warn('Non-admin user accessing admin panel!');
+    const fethUserInfo = async() => {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      if (userData?.data.role !== 'admin') {
+        // Should redirect, but let's allow it for training purposes
+        // console.warn('Non-admin user accessing admin panel!');
+        navigate('/unauthorized');
+        return
+      }
+
+      loadUsers();
     }
-    
-    loadUsers();
+    fethUserInfo();
   }, []);
 
   const loadUsers = async () => {
@@ -30,7 +32,9 @@ function AdminPanel() {
       setUsers(response.data.users);
     } catch (err) {
       setError('Failed to load users');
-      console.error('Error loading users:', err);
+      if (VITE_DEBUG_MODE) {
+        console.error('Error loading users:', err);
+      }
     }
   };
 
@@ -55,7 +59,7 @@ function AdminPanel() {
           <h2 className="text-2xl font-semibold mb-6">All Users</h2>
           
           {/* VULNERABILITY #2: Showing this only works if role is admin in localStorage */}
-          {user?.role !== 'admin' && (
+          {user?.data.role !== 'admin' && (
             <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded">
               ⚠️ You are not an admin, but you can still access this page due to missing server-side authorization!
             </div>
@@ -83,9 +87,9 @@ function AdminPanel() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Password
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -110,15 +114,16 @@ function AdminPanel() {
                       </span>
                     </td>
                     {/* VULNERABILITY #2 & #5: Displaying plain text passwords from API */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-mono">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-mono">
                       {u.password || 'N/A'}
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
+
+          {/* <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
             <h3 className="font-semibold text-red-800 mb-2">🚨 Security Issues on This Page:</h3>
             <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
               <li>No server-side authorization check - anyone can access this endpoint</li>
@@ -126,7 +131,7 @@ function AdminPanel() {
               <li>Client-side role check can be bypassed</li>
               <li>Sensitive user data exposed without proper access control</li>
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

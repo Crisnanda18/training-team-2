@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { updateProfile } from "../services/api";
-import { getUserData, setUserData } from "../utils/storage";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, updateProfile } from '../services/api';
+import { VITE_DEBUG_MODE } from '../config';
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -13,14 +13,22 @@ function Profile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = getUserData();
-    setUser(userData);
-    if (userData) {
-      setFormData({
-        name: userData.name || "",
-        bio: userData.bio || "",
-      });
-    }
+    const fetchUserData = async () => {
+      try {
+        const userData = await getCurrentUser();
+        setUser(userData);
+        setFormData({
+          name: userData.data.name || '',
+          bio: userData.data.bio || ''
+        });
+      } catch (error) {
+        if (VITE_DEBUG_MODE) {
+          console.error('Failed to fetch user data:', error);
+        }
+      }
+    };
+    
+    fetchUserData();
   }, []);
 
   const handleChange = (e) => {
@@ -35,17 +43,21 @@ function Profile() {
     setMessage("");
 
     try {
-      // VULNERABILITY #2: No authorization check - can update any user's profile (harusnya aman karena sudah di filter di UserData)
-      const response = await updateProfile(user.id, formData);
-
-      // VULNERABILITY #5: Updating localStorage with potentially sensitive data (harusnya aman karena sudah di filter di UserData)
-      setUserData(response.data);
-      setUser(response.data);
-
-      setMessage("Profile updated successfully!");
+      // VULNERABILITY #2: No authorization check - can update any user's profile
+      const currentUser = await getCurrentUser();
+      if (currentUser.data.id !== user.data.id) {
+        setMessage('You are not authorized to update this profile.');
+        return;
+      }
+      const response = await updateProfile(user.data.id, formData);
+      
+      // VULNERABILITY #5: Updating localStorage with potentially sensitive data
+      setMessage('Profile updated successfully!');
     } catch (error) {
-      setMessage("Failed to update profile");
-      console.error("Update error:", error);
+      setMessage('Failed to update profile');
+      if (VITE_DEBUG_MODE) {
+        console.error('Update error:', error);
+      }
     }
   };
 
@@ -90,7 +102,7 @@ function Profile() {
               </label>
               <input
                 type="email"
-                value={user?.email || ""}
+                value={user?.data.email || ''}
                 className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100"
                 disabled
               />
@@ -133,14 +145,15 @@ function Profile() {
             </button>
           </form>
 
-          {/* Display current bio as plain text */}
-          {user?.bio && (
+          {/* Display current bio with XSS vulnerability */}
+          {user?.data.bio && (
             <div className="mt-6 p-4 bg-gray-50 rounded">
               <h3 className="font-semibold mb-2">Current Bio:</h3>
-              <p>{user.bio}</p>
+              {/* VULNERABILITY #3: Rendering unsanitized HTML 
+              fixed: delete dangerouslySetInnerHTML */}
+              <div>{user.data.bio}</div>
             </div>
           )}
-
         </div>
       </div>
     </div>
