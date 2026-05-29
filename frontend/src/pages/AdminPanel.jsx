@@ -118,7 +118,6 @@ function AdminPanel() {
               </tbody>
             </table>
           </div>
-
           <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
             <h3 className="font-semibold text-red-800 mb-2">🚨 Security Issues on This Page:</h3>
             <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
