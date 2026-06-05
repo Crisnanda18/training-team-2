@@ -58,12 +58,7 @@ func main() {
 		AllowAllOrigins:  false,
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-		},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -81,9 +76,9 @@ func main() {
 		authorized.PUT("/tasks/:id", handlers.UpdateTask)
 		authorized.GET("/users/me", handlers.GetCurrentUser)
 
-		authorized.GET("/api/tasks/search", handlers.SearchTasks)
-		authorized.DELETE("/api/tasks/:id", handlers.DeleteTask)
-		authorized.PUT("/api/users/:id/profile", handlers.UpdateProfile)
+		authorized.GET("/tasks/search", handlers.SearchTasks)
+		authorized.DELETE("/tasks/:id", handlers.DeleteTask)
+		authorized.PUT("/users/:id/profile", handlers.UpdateProfile)
 
 		admin := authorized.Group("/admin", handlers.AdminMiddleware())
 		{

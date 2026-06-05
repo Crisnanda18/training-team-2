@@ -20,7 +20,7 @@ func GetTasks(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
 	var tasks []models.Task
-	database.DB.Where("user_id = ?", userID).Preload("User").Find(&tasks)
+	database.DB.Where("user_id = ?", userID).Find(&tasks)
 
 	c.JSON(http.StatusOK, tasks)
 }
@@ -156,7 +156,6 @@ func DeleteTask(c *gin.Context) {
 
 // VULNERABILITY #1: SQL Injection in search functionality
 // VULNERABILITY #2: No authentication required (exposed publicly in main.go)
-// VULNERABILITY #1: SQL Injection in search functionality
 /*
    Fix: Use parameterized queries instead of string concatenation when executing raw SQL.
    How: Build the SQL with placeholders and pass the sanitized/wrapped search term as an argument.

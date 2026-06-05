@@ -2,20 +2,27 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"securetask/database"
 	"securetask/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // VULNERABILITY #4: Hardcoded JWT secret
-var jwtSecret = []byte("supersecret123")
+/*
+	Fix: use environment variable for JWT secret
+*/
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+const authCookieName = "access_token"
 
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password" binding:"required,min=8"`
 	Name     string `json:"name" binding:"required"`
 }
 
@@ -32,10 +39,20 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// VULNERABILITY #5: Password stored in plain text (no hashing!)
+	if !isStrongPassword(req.Password) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password does not meet strength requirements"})
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
 	user := models.User{
 		Email:    req.Email,
-		Password: req.Password, // Should be hashed with bcrypt!
+		Password: string(hashed),
 		Name:     req.Name,
 		Role:     "user",
 	}
@@ -45,10 +62,10 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// VULNERABILITY #2: Returning password in response
+	user.Password = ""
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
-		"user":    user, // Contains password!
+		"user":    user,
 	})
 }
 
@@ -62,13 +79,16 @@ func Login(c *gin.Context) {
 
 	var user models.User
 
-	// VULNERABILITY #5: Plain text password comparison
-	if err := database.DB.Where("email = ? AND password = ?", req.Email, req.Password).First(&user).Error; err != nil {
+	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Generate JWT token
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -82,31 +102,48 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// VULNERABILITY #2: Returning sensitive user data including password
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		authCookieName,
+		tokenString,
+		60*60*24, // 1 day
+		"/",
+		"",
+		false,
+		true,
+	)
+
+	user.Password = ""
 	c.JSON(http.StatusOK, gin.H{
+		"user":  user,
 		"token": tokenString,
-		"user":  user, // Contains password!
 	})
+}
+
+func Logout(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(authCookieName, "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
+		tokenString, err := c.Cookie(authCookieName)
+
+		if err != nil || tokenString == "" {
+			tokenString = c.GetHeader("Authorization")
+			if tokenString == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization required"})
+				c.Abort()
+				return
+			}
+
+			if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+				tokenString = tokenString[7:]
+			}
 		}
 
-		// Remove "Bearer " prefix if present
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
-		})
-
+		token, err := decodeJWT(tokenString)
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -114,11 +151,71 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Set("user_id", uint(claims["user_id"].(float64)))
-			c.Set("email", claims["email"].(string))
-			c.Set("role", claims["role"].(string))
+			if uid, ok := claims["user_id"].(float64); ok {
+				c.Set("user_id", uint(uid))
+			}
+			if email, ok := claims["email"].(string); ok {
+				c.Set("email", email)
+			}
+			if role, ok := claims["role"].(string); ok {
+				c.Set("role", role)
+			}
 		}
 
 		c.Next()
+	}
+
+}
+
+func AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleI, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+			c.Abort()
+			return
+		}
+		roleStr, ok := roleI.(string)
+		if !ok || roleStr != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func isStrongPassword(p string) bool {
+	var hasMin = len(p) >= 8
+	var hasUpper, hasLower, hasNumber bool
+	for _, r := range p {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			hasUpper = true
+		case r >= 'a' && r <= 'z':
+			hasLower = true
+		case r >= '0' && r <= '9':
+			hasNumber = true
+		}
+	}
+	return hasMin && hasUpper && hasLower && hasNumber
+}
+
+func verifySignature(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return jwtSecret, nil
+	})
+}
+
+func decodeJWT(tokenString string) (*jwt.Token, error) {
+	return verifySignature(tokenString)
+}
+
+func init() {
+	if len(jwtSecret) == 0 {
+		panic("JWT_SECRET environment variable is required")
 	}
 }
