@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"securetask/database"
@@ -14,12 +13,18 @@ import (
 )
 
 // VULNERABILITY #4: Hardcoded JWT secret
+/*
+	Fix: use environment variable for JWT secret
+*/
 var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+const authCookieName = "access_token"
 
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
 	Name     string `json:"name" binding:"required"`
+	Role     string `json:"role" binding:"required,oneof=admin user"`
 }
 
 type LoginRequest struct {
@@ -50,7 +55,7 @@ func Register(c *gin.Context) {
 		Email:    req.Email,
 		Password: string(hashed),
 		Name:     req.Name,
-		Role:     "user",
+		Role:     req.Role,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -75,7 +80,6 @@ func Login(c *gin.Context) {
 
 	var user models.User
 
-	// Find user by email and compare hashed password
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -86,7 +90,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -100,32 +103,48 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Do not return password in response
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		authCookieName,
+		tokenString,
+		60*60*24, // 1 day
+		"/",
+		"",
+		false,
+		true,
+	)
+
 	user.Password = ""
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
 		"user":  user,
+		"token": tokenString,
 	})
+}
+
+func Logout(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(authCookieName, "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
+		tokenString, err := c.Cookie(authCookieName)
+
+		if err != nil || tokenString == "" {
+			tokenString = c.GetHeader("Authorization")
+			if tokenString == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization required"})
+				c.Abort()
+				return
+			}
+
+			if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+				tokenString = tokenString[7:]
+			}
 		}
 
-		// Remove "Bearer " prefix if present
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
-		})
-
+		token, err := decodeJWT(tokenString)
 		if err != nil || !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -183,8 +202,21 @@ func isStrongPassword(p string) bool {
 	return hasMin && hasUpper && hasLower && hasNumber
 }
 
-func init() {
-	if len(jwtSecret) == 0 {
-		log.Fatal("JWT_SECRET environment variable is required")
-	}
+func verifySignature(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return jwtSecret, nil
+	})
 }
+
+func decodeJWT(tokenString string) (*jwt.Token, error) {
+	return verifySignature(tokenString)
+}
+
+// func init() {
+// 	if len(jwtSecret) == 0 {
+// 		log.Fatal("JWT_SECRET environment variable is required")
+// 	}
+// }

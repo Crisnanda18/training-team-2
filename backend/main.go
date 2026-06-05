@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"securetask/database"
 	"securetask/handlers"
 	"securetask/models"
@@ -32,6 +34,7 @@ func RateLimiter() gin.HandlerFunc {
 func main() {
 	// Load environment variables
 	godotenv.Load()
+	fmt.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
 
 	// Initialize database
 	database.Connect()
