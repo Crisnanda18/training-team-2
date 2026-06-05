@@ -156,7 +156,6 @@ func DeleteTask(c *gin.Context) {
 
 // VULNERABILITY #1: SQL Injection in search functionality
 // VULNERABILITY #2: No authentication required (exposed publicly in main.go)
-// VULNERABILITY #1: SQL Injection in search functionality
 /*
    Fix: Use parameterized queries instead of string concatenation when executing raw SQL.
    How: Build the SQL with placeholders and pass the sanitized/wrapped search term as an argument.

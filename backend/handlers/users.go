@@ -11,13 +11,16 @@ import (
 func GetCurrentUser(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
-	var user models.User
+	var user models.UserResponse
 	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	// VULNERABILITY #2: Returning password in response
+	/*
+		fix: Use a separate struct for responses that doesn't include password
+	*/
 	c.JSON(http.StatusOK, user)
 }
 
