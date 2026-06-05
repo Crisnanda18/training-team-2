@@ -24,7 +24,6 @@ type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
 	Name     string `json:"name" binding:"required"`
-	Role     string `json:"role" binding:"required,oneof=admin user"`
 }
 
 type LoginRequest struct {
@@ -55,7 +54,7 @@ func Register(c *gin.Context) {
 		Email:    req.Email,
 		Password: string(hashed),
 		Name:     req.Name,
-		Role:     req.Role,
+		Role:     "user",
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -215,8 +214,8 @@ func decodeJWT(tokenString string) (*jwt.Token, error) {
 	return verifySignature(tokenString)
 }
 
-// func init() {
-// 	if len(jwtSecret) == 0 {
-// 		log.Fatal("JWT_SECRET environment variable is required")
-// 	}
-// }
+func init() {
+	if len(jwtSecret) == 0 {
+		panic("JWT_SECRET environment variable is required")
+	}
+}

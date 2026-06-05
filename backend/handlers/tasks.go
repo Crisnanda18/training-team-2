@@ -20,7 +20,7 @@ func GetTasks(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
 	var tasks []models.Task
-	database.DB.Where("user_id = ?", userID).Preload("User").Find(&tasks)
+	database.DB.Where("user_id = ?", userID).Find(&tasks)
 
 	c.JSON(http.StatusOK, tasks)
 }
