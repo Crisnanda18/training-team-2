@@ -35,3 +35,5 @@ logs/
 
 # Note: .env is intentionally NOT ignored for training purposes
 # In real projects, always add .env to .gitignore!
+
+.env
