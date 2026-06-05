@@ -12,11 +12,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// VULNERABILITY #4: Hardcoded JWT secret
-/*
-	Fix: use environment variable for JWT secret
-*/
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+// Fix: read JWT secret lazily (at use time), not at package load time.
+// godotenv.Load() runs inside main(), which executes AFTER this package's
+// init. Reading os.Getenv here at load time would always be empty.
+func jwtSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("JWT_SECRET environment variable is required")
+	}
+	return []byte(secret)
+}
 
 const authCookieName = "access_token"
 
@@ -96,7 +101,7 @@ func Login(c *gin.Context) {
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(jwtSecret())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -206,16 +211,10 @@ func verifySignature(tokenString string) (*jwt.Token, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
-		return jwtSecret, nil
+		return jwtSecret(), nil
 	})
 }
 
 func decodeJWT(tokenString string) (*jwt.Token, error) {
 	return verifySignature(tokenString)
-}
-
-func init() {
-	if len(jwtSecret) == 0 {
-		panic("JWT_SECRET environment variable is required")
-	}
 }
