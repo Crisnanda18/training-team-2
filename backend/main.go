@@ -6,6 +6,8 @@ import (
 	"securetask/database"
 	"securetask/handlers"
 	"securetask/models"
+	"sync"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -14,15 +16,38 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func RateLimiter() gin.HandlerFunc {
-	limiter := rate.NewLimiter(1, 4)
-	return func(c *gin.Context) {
+type rateLimiterStore struct {
+	mu       sync.Mutex
+	limiters map[string]*rate.Limiter
+}
 
-		if limiter.Allow() {
+func newRateLimiterStore() *rateLimiterStore {
+	return &rateLimiterStore{
+		limiters: make(map[string]*rate.Limiter),
+	}
+}
+
+func (s *rateLimiterStore) limiterFor(ip string) *rate.Limiter {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	limiter, exists := s.limiters[ip]
+	if !exists {
+		limiter = rate.NewLimiter(rate.Every(time.Second), 4)
+		s.limiters[ip] = limiter
+	}
+
+	return limiter
+}
+
+func LoginRateLimiter(store *rateLimiterStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		if store.limiterFor(clientIP).Allow() {
 			c.Next()
 		} else {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"message": "Limite exceed",
+				"message": "Limit exceeded",
 			})
 		}
 
@@ -47,7 +72,7 @@ func main() {
 
 	// Setup Gin router
 	r := gin.Default()
-	r.Use(RateLimiter())
+	loginRateLimiters := newRateLimiterStore()
 
 	// VULNERABILITY: Permissive CORS - allows all origins
 	/*
@@ -65,7 +90,7 @@ func main() {
 
 	// Public routes (no authentication required)
 	r.POST("/api/auth/register", handlers.Register)
-	r.POST("/api/auth/login", handlers.Login)
+	r.POST("/api/auth/login", LoginRateLimiter(loginRateLimiters), handlers.Login)
 
 	// Protected routes (with auth middleware)
 	authorized := r.Group("/api")
