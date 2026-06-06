@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getTasks, createTask, updateTask, deleteTask, searchTasks, getCurrentUser } from '../services/api';
-import { getUserData, removeToken, clearUserData } from '../utils/storage';
+import { removeToken } from '../utils/storage';
 import { VITE_DEBUG_MODE } from '../config';
 
 function Dashboard() {
