@@ -32,7 +32,6 @@ function AdminPanel() {
       setUsers(response.data.users);
     } catch (err) {
       // fix: backend ngirim kalau 403/401, server jadi penentu
-      setError('Failed to load users');
       if (err.response?.status === 403 || err.response?.status === 401) {
         navigate('/unauthorized');
         return;
