@@ -54,13 +54,6 @@ export const login = (email, password) => {
   return api.post('/auth/login', { email, password });
 };
 
-// Logout: minta backend menghapus httpOnly cookie.
-// Hanya backend yang bisa menghapus cookie httpOnly (via Set-Cookie maxAge -1),
-// JavaScript tidak punya akses ke cookie tersebut.
-export const logout = () => {
-  return api.post('/auth/logout');
-};
-
 // Task APIs
 export const getTasks = () => {
   return api.get('/tasks');
