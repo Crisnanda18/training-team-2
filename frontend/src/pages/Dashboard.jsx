@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getTasks, createTask, updateTask, deleteTask, searchTasks, getCurrentUser } from '../services/api';
+import { getTasks, createTask, updateTask, deleteTask, searchTasks, getCurrentUser, logout } from '../services/api';
 import { removeToken } from '../utils/storage';
 import { VITE_DEBUG_MODE } from '../config';
 
@@ -76,8 +76,15 @@ function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    removeToken();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      if (VITE_DEBUG_MODE) {
+        console.error('Logout failed:', error);
+      }
+    }
+    removeToken();          // hapus token in-memory
     navigate('/login');
     window.location.reload();
   };
