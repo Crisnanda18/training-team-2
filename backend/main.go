@@ -91,6 +91,7 @@ func main() {
 	// Public routes (no authentication required)
 	r.POST("/api/auth/register", handlers.Register)
 	r.POST("/api/auth/login", LoginRateLimiter(loginRateLimiters), handlers.Login)
+	r.POST("/api/auth/logout", handlers.Logout)
 
 	// Protected routes (with auth middleware)
 	authorized := r.Group("/api")
